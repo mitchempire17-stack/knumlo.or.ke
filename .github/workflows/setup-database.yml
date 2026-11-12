@@ -1,0 +1,45 @@
+
+name: Set up database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create database tables
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/all.sql
+
+      - name: Create administrator
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ADMIN_NAME: ${{ secrets.ADMIN_NAME }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -v admin_name="$ADMIN_NAME" \
+            -v admin_email="$ADMIN_EMAIL" \
+            -v admin_password="$ADMIN_PASSWORD" <<'SQL'
+          INSERT INTO staff_users
+            (full_name, email, password_hash, role)
+          VALUES (
+            :'admin_name',
+            :'admin_email',
+            crypt(:'admin_password', gen_salt('bf', 12)),
+            'super_admin'
+          )
+          ON CONFLICT (email) DO NOTHING;
+          SQL
