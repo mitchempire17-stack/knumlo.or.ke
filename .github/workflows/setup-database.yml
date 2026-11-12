@@ -1,12 +1,12 @@
 
 name: Set up database
 
-on:
+'on':
   push:
     branches: [main, master]
     paths:
       - 'database/**'
-      - '.github/workflows/main.yml'
+      - '.github/workflows/setup-database.yml'
   workflow_dispatch:
 
 jobs:
